@@ -24,3 +24,10 @@ target
 # Added by cargo
 
 /target
+
+
+# Env files
+.env
+.env.*
+
+!.env.example
