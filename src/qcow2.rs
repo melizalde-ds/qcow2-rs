@@ -1,9 +1,10 @@
-use std::io::Error;
+use std::io::{Read, Seek, SeekFrom};
+use std::{fs::File, io::Error};
 
 pub const QCOW2_MAGIC: u32 = 0x514649fb;
 
-trait ValidateQcow2Metadata {
-    fn is_valid(&self) -> Result<bool, Error>;
+pub trait ValidateQcow2Struct {
+    fn is_valid(&self, file: &mut File) -> Result<bool, Error>;
 }
 
 #[derive(Debug)]
@@ -20,6 +21,23 @@ pub struct Qcow2Header {
     pub refcount_table_clusters: u32,
     pub nb_snapshots: u32,
     pub snapshots_offset: u64,
+}
+
+impl Qcow2Header {
+    fn validate_backing(&self, file: &mut File) -> Result<bool, Error> {
+        if self.backing_file_offset == 0 && self.backing_file_size == 0 {
+            Ok(true)
+        } else if self.backing_file_offset > 0 && self.backing_file_size > 0 {
+            file.seek(SeekFrom::Start(self.backing_file_offset))
+                .expect("Failed to seek");
+            let mut buffer = vec![0; self.backing_file_size as usize];
+            file.read_exact(&mut buffer)
+                .expect("Failed to read specified number of bytes");
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -86,5 +104,17 @@ impl TryFrom<Vec<u8>> for Qcow2Metadata {
                 extensions: None,
             })
         }
+    }
+}
+
+impl ValidateQcow2Struct for Qcow2Header {
+    fn is_valid(&self, file: &mut File) -> Result<bool, Error> {
+        self.validate_backing(file)
+    }
+}
+
+impl ValidateQcow2Struct for Qcow2Metadata {
+    fn is_valid(&self, file: &mut File) -> Result<bool, Error> {
+        self.header.validate_backing(file)
     }
 }

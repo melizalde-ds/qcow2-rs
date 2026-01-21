@@ -6,6 +6,8 @@ use std::env;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 
+use crate::qcow2::ValidateQcow2Struct;
+
 fn main() {
     // Load environment variables from .env file
     dotenv().ok();
@@ -37,7 +39,9 @@ fn main() {
     };
 
     let header = Qcow2Metadata::try_from(buff).expect("Failed to parse qcow2 metadata");
-    println!("QCOW2 Header Metadata: {:#?}", header);
+    header
+        .is_valid(&mut file)
+        .expect("Failed to validate qcow2 metadata");
 }
 
 fn get_file() -> File {
