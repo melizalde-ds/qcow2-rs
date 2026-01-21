@@ -33,7 +33,7 @@ struct Qcow2V3Header {
 #[derive(Debug)]
 struct Qcow2HeaderExtension {
     extension_type: u32,
-    lenght: u32,
+    length: u32,
     data: Vec<u8>,
 }
 
