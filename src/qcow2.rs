@@ -1,6 +1,13 @@
+use std::io::Error;
+
+pub const QCOW2_MAGIC: u32 = 0x514649fb;
+
+trait ValidateQcow2Metadata {
+    fn is_valid(&self) -> Result<bool, Error>;
+}
+
 #[derive(Debug)]
 pub struct Qcow2Header {
-    pub magic: u32,
     pub version: u32,
     pub backing_file_offset: u64,
     pub backing_file_size: u32,
@@ -45,7 +52,6 @@ impl TryFrom<Vec<u8>> for Qcow2Metadata {
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         let length = value.len();
         let header = Qcow2Header {
-            magic: u32::from_be_bytes(value[0..4].try_into().unwrap()),
             version: u32::from_be_bytes(value[4..8].try_into().unwrap()),
             backing_file_offset: u64::from_be_bytes(value[8..16].try_into().unwrap()),
             backing_file_size: u32::from_be_bytes(value[16..20].try_into().unwrap()),

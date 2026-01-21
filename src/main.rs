@@ -1,7 +1,7 @@
 mod qcow2;
 
 use dotenvy::dotenv;
-use qcow2::Qcow2Metadata;
+use qcow2::{QCOW2_MAGIC, Qcow2Metadata};
 use std::env;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -13,10 +13,19 @@ fn main() {
     // Retrieve the disk location from environment variables
     let mut file = get_file();
 
-    // Create initial buffer
-    let initial_buff: [u8; 8] = read_file_bytes(&mut file, 8, 0).try_into().unwrap();
+    // Magic number check
+    let magic_bytes: [u8; 4] = read_file_bytes(&mut file, 4, 0).try_into().unwrap();
+    let magic = u32::from_be_bytes(magic_bytes);
+    if magic != QCOW2_MAGIC {
+        panic!("Not a valid qcow2 file");
+    }
+
     // Version check
-    let version = initial_buff[7];
+    let version_bytes: [u8; 4] = read_file_bytes(&mut file, 4, 4).try_into().unwrap();
+    let version = u32::from_be_bytes(version_bytes);
+    if version != 2 && version != 3 {
+        panic!("Unsupported qcow2 version: {}", version);
+    }
 
     // Read full header based on version
     let buff: Vec<u8> = if version == 3 {
