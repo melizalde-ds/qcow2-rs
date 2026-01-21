@@ -52,8 +52,7 @@ fn main() {
     let mut file = get_file();
 
     // Create initial buffer
-    let initial_buff: [u8; 8];
-    initial_buff = read_file_bytes(&mut file, 8, 0).try_into().unwrap();
+    let initial_buff: [u8; 8] = read_file_bytes(&mut file, 8, 0).try_into().unwrap();
     // Version check
     let version = initial_buff[7];
     let buff: Vec<u8>;
