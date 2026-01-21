@@ -1,7 +1,7 @@
 use dotenvy::dotenv;
 use std::env;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Seek, SeekFrom};
 
 struct Qcow2Header {
     magic: u32,
@@ -47,23 +47,37 @@ fn main() {
     let disk_location = get_disk_location();
 
     // Create unitial buffer
-    let mut initial_buff: [u8; 72];
-    initial_buff = read_file_bytes(&disk_location, 72).try_into().unwrap();
+    let initial_buff: [u8; 8];
+    initial_buff = read_file_bytes(&disk_location, 8, None).try_into().unwrap();
 
     // Version check
     let version = initial_buff[7];
+    let buff: Vec<u8>;
+
     if version == 3 {
-        let mut v3_buff: [u8; 104];
-        v3_buff = read_file_bytes(&disk_location, 104).try_into().unwrap();
+        let length_bytes: [u8; 4] = read_file_bytes(&disk_location, 4, Some(100))
+            .try_into()
+            .unwrap();
+        let header_length = u32::from_be_bytes(length_bytes) as usize;
+        buff = read_file_bytes(&disk_location, header_length, None);
+    } else {
+        buff = read_file_bytes(&disk_location, 72, None);
     }
+
+    print!("Version: {}\n", version);
+    print!("Header Length: {}\n", buff.len());
+    print!("{:?}", buff)
 }
 
 fn get_disk_location() -> String {
     env::var("DISK_LOCATION").unwrap_or(String::from("default_disk.qcow2"))
 }
 
-fn read_file_bytes(path: &str, num_bytes: usize) -> Vec<u8> {
+fn read_file_bytes(path: &str, num_bytes: usize, offset: Option<usize>) -> Vec<u8> {
     let mut file = File::open(path).expect("Failed to open file");
+    let offset = offset.unwrap_or(0);
+    file.seek(SeekFrom::Start(offset as u64))
+        .expect("Failed to seek");
     let mut buffer = vec![0; num_bytes];
     file.read_exact(&mut buffer)
         .expect("Failed to read specified number of bytes");
@@ -74,6 +88,6 @@ impl TryFrom<Vec<u8>> for Qcow2Metadata {
     type Error = std::io::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        
+        todo!()
     }
 }
