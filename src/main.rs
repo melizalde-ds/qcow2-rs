@@ -33,6 +33,9 @@ fn main() {
     let buff: Vec<u8> = if version == 3 {
         let length_bytes: [u8; 4] = read_file_bytes(&mut file, 4, 100).try_into().unwrap();
         let header_length = u32::from_be_bytes(length_bytes) as usize;
+        if header_length < 104 || !header_length.is_multiple_of(8) {
+            panic!("Invalid qcow2 v3 header length: {}", header_length);
+        }
         read_file_bytes(&mut file, header_length, 0)
     } else {
         read_file_bytes(&mut file, 72, 0)

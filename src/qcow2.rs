@@ -38,6 +38,27 @@ impl Qcow2Header {
             Ok(false)
         }
     }
+
+    fn validate_cluster_bits(&self) -> Result<bool, Error> {
+        if self.cluster_bits >= 9 && self.cluster_bits <= 21 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+    fn validate_crypt_method(&self) -> Result<bool, Error> {
+        if self.crypt_method <= 2 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+    fn validate_l1_size(&self) -> Result<bool, Error> {
+        if self.size == 0 && self.l1_size != 0 {
+            return Ok(false);
+        }
+        Ok(true)
+    }
 }
 
 #[derive(Debug)]
@@ -109,12 +130,20 @@ impl TryFrom<Vec<u8>> for Qcow2Metadata {
 
 impl ValidateQcow2Struct for Qcow2Header {
     fn is_valid(&self, file: &mut File) -> Result<bool, Error> {
-        self.validate_backing(file)
+        let backing_valid = self.validate_backing(file)?;
+        let cluster_bits_valid = self.validate_cluster_bits()?;
+        let crypt_method_valid = self.validate_crypt_method()?;
+        let l1_size_valid = self.validate_l1_size()?;
+        if backing_valid && cluster_bits_valid && crypt_method_valid && l1_size_valid {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 }
 
 impl ValidateQcow2Struct for Qcow2Metadata {
     fn is_valid(&self, file: &mut File) -> Result<bool, Error> {
-        self.header.validate_backing(file)
+        self.header.is_valid(file)
     }
 }
