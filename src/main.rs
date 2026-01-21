@@ -51,7 +51,7 @@ fn main() {
     // Retrieve the disk location from environment variables
     let mut file = get_file();
 
-    // Create unitial buffer
+    // Create initial buffer
     let initial_buff: [u8; 8];
     initial_buff = read_file_bytes(&mut file, 8, 0).try_into().unwrap();
     // Version check
