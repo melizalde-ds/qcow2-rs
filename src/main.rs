@@ -44,24 +44,21 @@ fn main() {
     dotenv().ok();
 
     // Retrieve the disk location from environment variables
-    let disk_location = get_disk_location();
+    let mut file = get_file();
 
     // Create unitial buffer
     let initial_buff: [u8; 8];
-    initial_buff = read_file_bytes(&disk_location, 8, None).try_into().unwrap();
-
+    initial_buff = read_file_bytes(&mut file, 8, 0).try_into().unwrap();
     // Version check
     let version = initial_buff[7];
     let buff: Vec<u8>;
 
     if version == 3 {
-        let length_bytes: [u8; 4] = read_file_bytes(&disk_location, 4, Some(100))
-            .try_into()
-            .unwrap();
+        let length_bytes: [u8; 4] = read_file_bytes(&mut file, 4, 100).try_into().unwrap();
         let header_length = u32::from_be_bytes(length_bytes) as usize;
-        buff = read_file_bytes(&disk_location, header_length, None);
+        buff = read_file_bytes(&mut file, header_length, 0);
     } else {
-        buff = read_file_bytes(&disk_location, 72, None);
+        buff = read_file_bytes(&mut file, 72, 0);
     }
 
     print!("Version: {}\n", version);
@@ -69,13 +66,12 @@ fn main() {
     print!("{:?}", buff)
 }
 
-fn get_disk_location() -> String {
-    env::var("DISK_LOCATION").unwrap_or(String::from("default_disk.qcow2"))
+fn get_file() -> File {
+    let disk_location = env::var("DISK_LOCATION").unwrap_or(String::from("default_disk.qcow2"));
+    File::open(disk_location).expect("Failed to open file")
 }
 
-fn read_file_bytes(path: &str, num_bytes: usize, offset: Option<usize>) -> Vec<u8> {
-    let mut file = File::open(path).expect("Failed to open file");
-    let offset = offset.unwrap_or(0);
+fn read_file_bytes(file: &mut File, num_bytes: usize, offset: u64) -> Vec<u8> {
     file.seek(SeekFrom::Start(offset as u64))
         .expect("Failed to seek");
     let mut buffer = vec![0; num_bytes];
