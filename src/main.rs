@@ -25,10 +25,18 @@ struct Qcow2V3Header {
     autoclear_features: u64,
     refcount_order: u32,
     header_length: u32,
+    compression_type: Option<u8>,
+}
+
+struct Qcow2HeaderExtension {
+    extension_type: u32,
+    lenght: u32,
+    data: Vec<u8>,
 }
 struct Qcow2Metadata {
     header: Qcow2Header,
     v3_header: Option<Qcow2V3Header>,
+    extensions: Option<Vec<Qcow2HeaderExtension>>,
 }
 
 fn main() {
@@ -38,25 +46,34 @@ fn main() {
     // Retrieve the disk location from environment variables
     let disk_location = get_disk_location();
 
-    // Create Header Buffer
-    let mut initial_buff: [u8; 72] = [0u8; 72];
+    // Create unitial buffer
+    let mut initial_buff: [u8; 72];
+    initial_buff = read_file_bytes(&disk_location, 72).try_into().unwrap();
 
-    // Load the first 72 bytes of the QCOW2 file
-    let mut file = File::open(&disk_location).expect("Failed to open QCOW2 file");
-    file.read_exact(&mut initial_buff)
-        .expect("Failed to read QCOW2 header");
-
-    // Parse and display QCOW2 header information
+    // Version check
     let version = initial_buff[7];
-    print!("QCOW2 version: {}\n", version);
-
     if version == 3 {
-        let mut v3_buff: [u8; 104] = [0u8; 104];
-        file.read_exact(&mut v3_buff)
-            .expect("Failed to read QCOW2 v3 header");
+        let mut v3_buff: [u8; 104];
+        v3_buff = read_file_bytes(&disk_location, 104).try_into().unwrap();
     }
 }
 
 fn get_disk_location() -> String {
     env::var("DISK_LOCATION").unwrap_or(String::from("default_disk.qcow2"))
+}
+
+fn read_file_bytes(path: &str, num_bytes: usize) -> Vec<u8> {
+    let mut file = File::open(path).expect("Failed to open file");
+    let mut buffer = vec![0; num_bytes];
+    file.read_exact(&mut buffer)
+        .expect("Failed to read specified number of bytes");
+    buffer
+}
+
+impl TryFrom<Vec<u8>> for Qcow2Metadata {
+    type Error = std::io::Error;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        
+    }
 }
