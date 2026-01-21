@@ -75,7 +75,7 @@ fn get_file() -> File {
 }
 
 fn read_file_bytes(file: &mut File, num_bytes: usize, offset: u64) -> Vec<u8> {
-    file.seek(SeekFrom::Start(offset as u64))
+    file.seek(SeekFrom::Start(offset))
         .expect("Failed to seek");
     let mut buffer = vec![0; num_bytes];
     file.read_exact(&mut buffer)
